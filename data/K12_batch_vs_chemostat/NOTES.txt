@@ -1,0 +1,1 @@
+This folder contains differential expression results for K12_batch1, K12_batch2, vs K12_chemostat1, K12_chemostat2 reads when aligned to the K12 reference genome. 

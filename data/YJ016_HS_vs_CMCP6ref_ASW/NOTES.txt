@@ -1,0 +1,3 @@
+This folder contains data for: (YJ016_HS1, YJ016_HS2) vs  (CMCP6_YJ016_ASW1, CMCP6_YJ016_ASW2)
+
+This means that reads generated from YJ016_HS1/2 and YJ016_ASW1/2 conditions were aligned to the YJ016 reference genome (in the case of HS) and the CMCP6 reference genome (in the case of ASW) and DE was performed.

@@ -1,0 +1,126 @@
+It seems protein is the way I went with the V.Vulnificus comparisons, because it produces more matches.
+And so i'll keep that the same here.
+
+If you repeat this in the future be sure to verify the aggreement of your .gff and .fasta files, as you later need to map
+files that are generated from the fasta to the gff.  
+
+Blast protein coding sequences against one another.  In this case, IAI1 vs K12.  
+
+makeblastdb -in k12_coding_prot.fasta -title K12_features_prot -dbtype prot -out K12_features_prot -parse_seqids
+makeblastdb -in IAI1_coding_prot.fasta -title IAI1_features_prot -dbtype prot -out IAI1_features_prot -parse_seqids
+
+blastp -outfmt 6 -query k12_coding_prot.fasta -db IAI1_features_prot -out K12_features_vs_IAI1_features_prot.out 
+blastp -outfmt 6 -query IAI1_coding_prot.fasta -db K12_features_prot -out IAI1_features_vs_K12_features_prot.out 
+
+Then do reciprocal blast hit matches:
+python ../../blastContigSelector_v2.py -c K12_features_vs_IAI1_features_prot.out -f IAI1_features_vs_K12_features_prot.out -g ecoli_K12.fasta -o IAI1_K12_RBH.out > IAI_K12_RBH.log
+
+
+Next, chop up some files to make a proteinID <-> geneID mapping file for each strain.
+
+awk '/^>/' k12_coding_prot.fasta > K12_temp1.out
+sed 's/].*//' K12_temp1.out > K12_temp2.out
+sed 's/ /\t/' K12_temp2.out > K12_temp3.out
+sed 's/\[//' K12_temp3.out > K12_temp4.out
+sed 's/>//' K12_temp4.out > K12_temp5.out
+sed 's/gene=//' K12_temp5.out > K12_temp6.out
+sed 's/^....//' K12_temp6.out > K12_prot_gene_map.dat
+
+awk '/^>/' IAI1_coding_prot.fasta > IAI1_temp1.out
+sed 's/].*//' IAI1_temp1.out > IAI1_temp2.out 
+sed 's/ /\t/' IAI1_temp2.out > IAI1_temp3.out
+sed 's/\[//' IAI1_temp3.out > IAI1_temp4.out
+sed 's/>//' IAI1_temp4.out > IAI1_temp5.out
+sed 's/gene=//' IAI1_temp5.out > IAI1_temp6.out
+sed 's/^....//' IAI1_temp6.out > IAI1_prot_gene_map.dat
+
+Make a copy of the RBH file, cut the top line (headers) then trim it down to the first two columns.
+
+cp IAI1_K12_RBH.tab IAI1_K12_RBH_temp1.tab
+ //nano->ctrl+k to cut the first line of the temp file. save.
+
+cut -f1,2 IAI1_K12_RBH_temp1.tab > IAI1_K12_RBH_temp2.tab
+sed 's/^....//' IAI1_K12_RBH_temp2.tab > IAI1_K12_RBH_temp3.tab
+
+Had to convert a single column to uppercase in the protein-gene map.
+
+awk '$1 = toupper($1)' K12_prot_gene_map.dat > K12_prot_gene_map2.dat 
+sed 's/ /\t/' K12_prot_gene_map2.dat > K12_prot_gene_map3.dat //do one of these to clean up the adjustment.
+mv K12_prot_gene_map3.dat K12_prot_gene_map.dat
+
+Replace columns with their corresponding gene values.
+
+python column_adjust.py -t IAI1_K12_RBH_temp3.tab -m K12_prot_gene_map.dat -c 0 -o IAI1_K12_RBH_temp4.tab
+python column_adjust.py -t IAI1_K12_RBH_temp4.tab -m IAI1_prot_gene_map.dat -c 1 -o IAI1_K12_gene_map.tab
+
+
+In the meantime, run bowtie2 alignment of reads to both reference genomes in question.
+Next, use Rsubread -> featureCounts with the sorted bam alignment files + gff files to get expression
+levels at a gene level.
+
+Clean up one of the featureCount files, and merge data columns together based on the reference genome used.
+Note that it's only necessary to clean 1 data file and then use the first column, adding additional columns of counts (not geneIDs) only.
+
+sed 's/\"//g' ecoli_IAI1_batch1_featureCounts.dat > ecoli_IAI1_batch1_featureCounts_trimmed.dat
+
+
+Merge the files like this.  First all of the ones using IAI1 reference:
+
+paste ecoli_IAI1_batch1_featureCounts_trimmed.dat ecoli_IAI1_batch2_featureCounts.dat | awk  -F $'\t' 'BEGIN {OFS = FS} {print $1,$2,$4}' > ecoli_IAI1_temp1.dat
+paste ecoli_IAI1_temp1.dat ecoli_IAI1_chemostat1_featureCounts.dat | awk  -F $'\t' 'BEGIN {OFS = FS} {print $1,$2,$3,$5}' > ecoli_IAI1_temp2.dat
+paste ecoli_IAI1_temp2.dat ecoli_IAI1_chemostat2_featureCounts.dat | awk  -F $'\t' 'BEGIN {OFS = FS} {print $1,$2,$3,$4,$6}' > ecoli_IAI1_temp3.dat
+paste ecoli_IAI1_temp3.dat ecoli_IAI1_starvation1_featureCounts.dat | awk  -F $'\t' 'BEGIN {OFS = FS} {print $1,$2,$3,$4,$5,$7}' > ecoli_IAI1_temp4.dat
+paste ecoli_IAI1_temp4.dat ecoli_IAI1_starvation2_featureCounts.dat | awk  -F $'\t' 'BEGIN {OFS = FS} {print $1,$2,$3,$4,$5,$6,$8}' > ecoli_IAI1_temp5.dat
+paste ecoli_IAI1_temp5.dat ecoli_K12_IAI1ref_batch1_featureCounts.dat | awk  -F $'\t' 'BEGIN {OFS = FS} {print $1,$2,$3,$4,$5,$6,$7,$9}' > ecoli_IAI1_temp6.dat
+paste ecoli_IAI1_temp6.dat ecoli_K12_IAI1ref_batch2_featureCounts.dat | awk  -F $'\t' 'BEGIN {OFS = FS} {print $1,$2,$3,$4,$5,$6,$7,$8,$10}' > ecoli_IAI1_temp7.dat
+paste ecoli_IAI1_temp7.dat ecoli_K12_IAI1ref_chemostat1_featureCounts.dat | awk -F $'\t' 'BEGIN {OFS = FS} {print $1,$2,$3,$4,$5,$6,$7,$8,$9,$11}' > ecoli_IAI1_temp8.dat
+paste ecoli_IAI1_temp8.dat ecoli_K12_IAI1ref_chemostat2_featureCounts.dat | awk  -F $'\t' 'BEGIN {OFS = FS} {print $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$12}' > ecoli_IAI1_temp9.dat
+paste ecoli_IAI1_temp9.dat ecoli_K12_IAI1ref_starvation1_featureCounts.dat | awk  -F $'\t' 'BEGIN {OFS = FS} {print $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$13}' > ecoli_IAI1_temp10.dat
+paste ecoli_IAI1_temp10.dat ecoli_K12_IAI1ref_starvation2_featureCounts.dat | awk  -F $'\t' 'BEGIN {OFS = FS} {print $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$14}' > ecoli_IAI1_temp11.dat
+
+Now rename the headers so they are more readable. Just manually with nano.
+Save the file with complete headers as a masterfile.
+
+> ecoli_IAI1_reference_featureCounts_master.dat 
+
+This file now contains count data for all conditions, for all genes, when IAI1 was the reference used.
+
+<---Now repeat this process for the case when K12 was the reference.--->
+sed 's/\"//g' ecoli_K12_batch1_featureCounts.dat > ecoli_K12_batch1_featureCounts_trimmed.dat
+paste ecoli_K12_batch1_featureCounts_trimmed.dat ecoli_K12_batch2_featureCounts.dat | awk  -F $'\t' 'BEGIN {OFS = FS} {print $1,$2,$4}' > ecoli_K12_temp1.dat
+paste ecoli_K12_temp1.dat ecoli_K12_chemostat1_featureCounts.dat |  awk  -F $'\t' 'BEGIN {OFS = FS} {print $1,$2,$3,$5}' > ecoli_K12_temp2.dat
+paste ecoli_K12_temp2.dat ecoli_K12_chemostat2_featureCounts.dat |  awk  -F $'\t' 'BEGIN {OFS = FS} {print $1,$2,$3,$4,$6}' > ecoli_K12_temp3.dat
+paste ecoli_K12_temp3.dat ecoli_K12_starvation1_featureCounts.dat |  awk  -F $'\t' 'BEGIN {OFS = FS} {print $1,$2,$3,$4,$5,$7}' > ecoli_K12_temp4.dat
+paste ecoli_K12_temp4.dat ecoli_K12_starvation2_featureCounts.dat |  awk  -F $'\t' 'BEGIN {OFS = FS} {print $1,$2,$3,$4,$5,$6,$8}' > ecoli_K12_temp5.dat
+paste ecoli_K12_temp5.dat ecoli_IAI1_K12ref_batch1_featureCounts.dat |  awk  -F $'\t' 'BEGIN {OFS = FS} {print $1,$2,$3,$4,$5,$6,$7,$9}' > ecoli_K12_temp6.dat
+paste ecoli_K12_temp6.dat ecoli_IAI1_K12ref_batch2_featureCounts.dat |  awk  -F $'\t' 'BEGIN {OFS = FS} {print $1,$2,$3,$4,$5,$6,$7,$8,$10}' > ecoli_K12_temp7.dat
+paste ecoli_K12_temp7.dat ecoli_IAI1_K12ref_chemostat1_featureCounts.dat |  awk  -F $'\t' 'BEGIN {OFS = FS} {print $1,$2,$3,$4,$5,$6,$7,$8,$9,$11}' > ecoli_K12_temp8.dat
+paste ecoli_K12_temp8.dat ecoli_IAI1_K12ref_chemostat2_featureCounts.dat |  awk  -F $'\t' 'BEGIN {OFS = FS} {print $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$12}' > ecoli_K12_temp9.dat
+paste ecoli_K12_temp9.dat ecoli_IAI1_K12ref_starvation1_featureCounts.dat |  awk  -F $'\t' 'BEGIN {OFS = FS} {print $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$13}' > ecoli_K12_temp10.dat
+paste ecoli_K12_temp10.dat ecoli_IAI1_K12ref_starvation2_featureCounts.dat |  awk  -F $'\t' 'BEGIN {OFS = FS} {print $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$14}' > ecoli_K12_temp11.dat
+
+
+Add headers with nano and save as a master file.
+> ecoli_K12_reference_featureCounts_master.dat 
+
+Next, use orthoMergy.py, in combination with the gene mapping file previously generated,
+to create a master file that spans both strains.
+
+> python orthoMerge.py -1 ../data/e.coli/ecoli_IAI1_reference_featureCounts_master.dat -2 ../data/e.coli/ecoli_K12_reference_featureCounts_master.dat -m ../data/e.coli/IAI1_K12_gene_mapping.dat -o ecoli_IAI1_K12_featureCounts_master.dat
+
+This will be the master file that makes it possible to do cross strain comparisons with.  
+
+
+Next, run deseq2_defExp.R using the count data master files to slice whatever data you
+want to compare out.  This will produce graphs and lists of DE genes.
+
+
+Next, run consolidator_lite.py on the resulting DE files to blast their protein/nucleotide
+ sequences together and count up mismatches and identify genes that were uniquely 
+differentially expressed in one condition or the other. The command looks like this:
+
+python consolidator_lite.py -2 IAI1_batch_vs_chemostat_difExp_results.csv -1 IAI1_batch_vs_K12ref_chemostat_difExp_results.csv -m IAI1_K12_gene_mapping.dat -a K12_f
+eatures.fasta -b IAI1_features2.fasta -x k12_coding_prot.fasta -y IAI1_coding_prot.fasta -o IAI1
+_batch_vs_K12chemostat > IAI1_batch_vs_K12chemostat_consolidator.log
+
+

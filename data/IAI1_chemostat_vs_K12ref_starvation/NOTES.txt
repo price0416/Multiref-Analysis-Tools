@@ -1,0 +1,1 @@
+This folder contains differential expression results for IAI1_chemostat1 and IAI1_chemostat2 reads when aligned to the IAI1 reference genome vs the IAI1_starvation1 and IAI1_starvation2 reads when aligned to the K12 reference genome.

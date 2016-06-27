@@ -1,0 +1,2 @@
+"","Gene","Identity.x","Score.x","Length.x","Mismatches.x","DE.x","Identity.y","Score.y","Length.y","Mismatches.y","DE.y","mismatchRatio","X.1","IAI1","X","baseMean","log2FoldChange","lfcSE","stat","pvalue","padj","K12_IAI1ref_starvation1","K12_IAI1ref_starvation2","K12_starvation1","K12_starvation2"
+"1564","ybhI",1423,1401,1434,11,1,477,2397,477,0,1,0.00767085076708508,1591,"ybhI",1,72.4687058823917,-0.233698064409934,0.0323576650312532,-7.22234018382393,5.11004435278579e-13,1.18450828097575e-09,139.578952913992,128.975015574783,8.18763227353673,13.1332227672543

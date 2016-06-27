@@ -1,0 +1,1 @@
+This folder contains differential expression results for K12_chemostat1, K12_chemostat2, vs K12_starvation1, K12_starvation2 reads when aligned to the K12 reference genome. 

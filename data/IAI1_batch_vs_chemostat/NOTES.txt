@@ -1,0 +1,1 @@
+This folder contains differential expression results for IAI1_batch1, IAI1_batch2, vs IAI1_chemostat1, IAI1_chemostat2 reads when aligned to the IAI1 reference genome. 

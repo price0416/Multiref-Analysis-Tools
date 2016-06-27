@@ -1,0 +1,1 @@
+This folder contains differential expression results for K12_batch1 and K12_batch2 reads when aligned to both the IAI1 and K12 reference genomes. That is, reads from K12 strain, batch condition, were aligned to the reference genome for IAI1 and K12 and DE was performed.  

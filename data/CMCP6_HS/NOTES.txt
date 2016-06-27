@@ -1,0 +1,3 @@
+This folder contains data for: (CMCP6_HS1, CMCP6_HS2) vs  (YJ016_CMCP6_HS1, YJ016_CMCP6_HS2)
+
+This means that reads generated from CMCP6_HS1/2 conditions were aligned to both the CMCP6 reference and the YJ016 reference and DE was performed.

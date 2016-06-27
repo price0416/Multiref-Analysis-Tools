@@ -1,0 +1,1 @@
+This folder contains differential expression results for IAI1_chemostat1 and IAI1_chemostat2 reads when aligned to both the IAI1 and K12 reference genomes. That is, reads from IAI1 strain, chemmostat condition, were aligned to the reference genome for IAI1 and K12 and DE was performed.  
